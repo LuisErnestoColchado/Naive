@@ -145,14 +145,17 @@ y = dataset.iloc[:, 4].values
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25, random_state = 0)
 #%%
-means= np.zeros((1,np.size(X_train,1)))
-SDs =  np.zeros((1,np.size(X_train,1)))
+num_class = 2
+means= np.zeros((np.size(X_train,1)))
+SDs =  np.zeros((np.size(X_train,1)))
+p_c = np.zeros((num_class))
 sum = 0
+predicts = np.zeros((y_test.shape(0)))
 
 def calculate_mean():
     for num_feature in range (0,X_train.shape(1)):
         mean = np.mean(X_train[:,num_feature])
-        means[0,num_feature] = mean  
+        means[num_feature] = mean  
     
 def calculate_SD():
     for num_feature in range (0,X_train.shape(1)):
@@ -160,8 +163,38 @@ def calculate_SD():
         for x in X_train[:,num_feature]:
             sum += np.power(x - means[num_feature],2)
         SD = 1/(X_train.shape(0)-1) * sum 
-        SDs[0,num_feature] = SD 
+        SDs[num_feature] = SD 
 
-def distribution_gaussian(x,XC,num_feature):
-    return (1/ (np.sqrt(2* np.pi) * SDs[num_feature]) * np.exp())
+def calculate_pc():
+    for i in range (0,num_class):
+        count = 0
+        for j in range (0,y_train.shape(0)):
+            if i == y_train[j]:
+                count =+ 1
+        p_c[num_class] = count
         
+def distribution_gaussian(x,num_feature):
+    return (1/ (np.sqrt(2* np.pi) * SDs[num_feature]) * np.exp(-np.power(x-means[num_feature],2)/np.power(SDs[num_feature],2)))
+        
+def run():
+    #calculate means for each feature 
+    calculate_mean()
+    
+    #calculate SD for each feature 
+    calculate_SD()
+    
+    #calculate previous case 
+    calculate_pc()
+    
+    #predicting 
+    for x in x_test:
+        predict= 0
+        acu = 0
+        for i in range(0,num_feature):
+            acu += distribution_gaussian(x[num_feature],num_feature)
+        predict = acu 
+    
+
+
+    
+    
