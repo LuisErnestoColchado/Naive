@@ -145,36 +145,52 @@ y = dataset.iloc[:, 4].values
 from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25, random_state = 0)
 #%%
+#from sklearn.preprocessing import StandardScaler
+#sc = StandardScaler()
+#X_train = sc.fit_transform(X_train)
+#X_test = sc.transform(X_test)
+#%%
 num_class = 2
-means= np.zeros((np.size(X_train,1)))
-SDs =  np.zeros((np.size(X_train,1)))
+means= np.zeros((2,np.size(X_train,1)))
+SDs =  np.zeros((2,np.size(X_train,1)))
 p_c = np.zeros((num_class))
 sum = 0
-predicts = np.zeros((y_test.shape(0)))
+predicts = np.zeros((np.size(y_test,0)))
 
 def calculate_mean():
-    for num_feature in range (0,X_train.shape(1)):
-        mean = np.mean(X_train[:,num_feature])
-        means[num_feature] = mean  
+    for c in range (0,num_class):
+        for num_feature in range (0,np.size(X_train,1)):
+            sum_c = 0
+            count_c = 0
+            for i in range(0,np.size(X_train,0)):
+                if c == y_train[i]:
+                    count_c += 1 
+                    sum_c += X_train[i,num_feature]
+            means[c,num_feature] = sum_c / count_c
     
 def calculate_SD():
-    for num_feature in range (0,X_train.shape(1)):
-        sum = 0
-        for x in X_train[:,num_feature]:
-            sum += np.power(x - means[num_feature],2)
-        SD = 1/(X_train.shape(0)-1) * sum 
-        SDs[num_feature] = SD 
+    for c in range (0,num_class):
+        for num_feature in range (0,np.size(X_train,1)):
+            sum_c = 0
+            count_c = 0
+            for i in range(0,np.size(X_train,0)):
+                if c == y_train[i]:
+                    sum_c += np.power(X_train[i,num_feature] - means[c,num_feature],2)
+                    count_c += 1
+            SD = 1.0/count_c * sum_c 
+            SDs[c,num_feature] = np.sqrt(SD) 
 
 def calculate_pc():
     for i in range (0,num_class):
         count = 0
-        for j in range (0,y_train.shape(0)):
+        for j in range (0,np.size(y_train,0)):
             if i == y_train[j]:
-                count =+ 1
-        p_c[num_class] = count
+                count += 1
+        print(count)
+        p_c[i] = float(count) / float(np.size(y_train,0))
         
-def distribution_gaussian(x,num_feature):
-    return (1/ (np.sqrt(2* np.pi) * SDs[num_feature]) * np.exp(-np.power(x-means[num_feature],2)/np.power(SDs[num_feature],2)))
+def distribution_gaussian(x,c,num_feature):
+    return (1.0/ (np.sqrt(2.0 * np.pi * (SDs[c,num_feature]**2))) * (np.exp(-1*(np.power(x-means[c,num_feature],2)/(2*np.power(SDs[c,num_feature],2))))))
         
 def run():
     #calculate means for each feature 
@@ -187,14 +203,40 @@ def run():
     calculate_pc()
     
     #predicting 
-    for x in x_test:
-        predict= 0
-        acu = 0
-        for i in range(0,num_feature):
-            acu += distribution_gaussian(x[num_feature],num_feature)
-        predict = acu 
+    count = 0
     
-
-
+    for x in X_test:
+        predict_class_1 = 0.
+        predict_class_2 = 0.
+        acu_class1 = 1
+        acu_class2 = 1
+        for num_feature in range(0,np.size(X_test,1)):
+            #print(x[num_feature])
+            acu_class1 *= distribution_gaussian(x[num_feature],0,num_feature)
+            
+        for num_feature in range(0,np.size(X_test,1)):
+            #print(x[num_feature])
+            acu_class2 *= distribution_gaussian(x[num_feature],1,num_feature)
+        
+        p_class_1 = p_c[0] * acu_class1  
+        p_class_2 = p_c[1] * acu_class2
+        predict_class_1 = p_class_1 / (p_class_1 + p_class_2)
+        predict_class_2 = p_class_2 / (p_class_1 + p_class_2)
+        #print("class 1",predict_class_1)
+        #print("class 2",predict_class_2)
+        if(predict_class_1 > predict_class_2):
+            predicts[count] = 0
+        else:
+            predicts[count] = 1
+        count+=1
+        
+    #calculate accuracy 
+    cm = confusion_matrix(y_test, predicts)
+    accuracy = np.mean(y_test==predicts)
+    #RESULTADOS
+    print("Results with my own Naive Bayes")
+    print(accuracy)
+    print(cm)
     
-    
+#exe naive bayes 
+run()
